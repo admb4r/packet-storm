@@ -17,6 +17,8 @@ cmake --build build
 
 ### Running
 
+The program assumes a pcap file named `packet-storm.pcap` exists in the location where the program is executed from.
+
 To run the executable:
 
 `./build/pstorm`
@@ -31,6 +33,8 @@ The `dst_ip_analysis.txt` file will show all observed destination IPs ranked by 
 
 The `proto_analysis.txt` file will show all observed transport layer protocols with the number of packets associated with each protocol. The protocol identifier can be looked up in `netinet/in.h` under the definitions prefixed `IPPROTO_`.
 
+Example output files have been included in the repo.
+
 ### Notes
 
 - The external library `libpcap` is used for packet analysis.
@@ -43,7 +47,6 @@ Apart from compiling for speed, no other code optimisations have been considered
 [17:10:10] andy:packet-storm git:(main*) $ time ./build/pstorm
 Average packet size: 147 B
 Total volume of data: 93968864 B
-Total unique destination IPs: 148709
 ./build/pstorm  0.37s user 0.03s system 99% cpu 0.408 total
 ```
 
@@ -51,5 +54,5 @@ Total unique destination IPs: 148709
 
 - **Average packet size:** 147 B.
 - **Total volume of data:** 93968864 B (93.97 MB).
-- **Most seen destination IP:** 229.154.57.192 (17) -- (Further analysis available in `dst_ip_analysis.txt`).
+- **Most seen destination IP:** 229.154.57.192 (17) -- (Further analysis available in `dst_ip_analysis.txt.example`).
 - **Transport protocol breakdown:** UDP (59163), TCP (940837).
