@@ -25,7 +25,8 @@ constexpr std::string_view PROTO_OUPUT_FILENAME = "proto_analysis.txt";
 /**
  * @brief PcapData struct used to store specific information related to a pcap.
  */
-struct PcapData {
+struct PcapData
+{
     // Track the total number of packets analysed.
     u_int32_t num_packets = 0;
     // Track the total size of packets analysed.
@@ -47,7 +48,8 @@ struct PcapData {
  * @param[in]  b  The second integer.
  * @return Returns true when an overflow would occur, else false.
  */
-bool is_addition_overflow(const u_int32_t a, const u_int32_t b) {
+bool is_addition_overflow(const u_int32_t a, const u_int32_t b)
+{
     return b > std::numeric_limits<u_int32_t>::max() - a;
 }
 
@@ -59,8 +61,10 @@ bool is_addition_overflow(const u_int32_t a, const u_int32_t b) {
  * @param[in]  b  The second integer.
  * @return Returns the sum if an overflow did not occur.
  */
-u_int32_t safe_add(const u_int32_t a, const u_int32_t b) {
-    if (is_addition_overflow(a, b)) {
+u_int32_t safe_add(const u_int32_t a, const u_int32_t b)
+{
+    if (is_addition_overflow(a, b))
+    {
         std::cout << "Unsigned integer overflow detected. Exiting." << "\n";
         std::exit(-1);
     }
@@ -76,7 +80,8 @@ u_int32_t safe_add(const u_int32_t a, const u_int32_t b) {
  * @param[in]      packet  A pointer to the start of the packet.
  */
 void packet_handler(u_char *user_data, const struct pcap_pkthdr *packet_header,
-                    const u_char *packet) {
+                    const u_char *packet)
+{
     auto *pcap_data = reinterpret_cast<PcapData *>(user_data);
 
     // Increment the number of packets processed.
@@ -87,7 +92,8 @@ void packet_handler(u_char *user_data, const struct pcap_pkthdr *packet_header,
     pcap_data->total_packet_size = safe_add(pcap_data->total_packet_size, packet_header->len);
 
     auto eth_header = reinterpret_cast<const struct ether_header *>(packet);
-    if (ntohs(eth_header->ether_type) != ETHERTYPE_IP) {
+    if (ntohs(eth_header->ether_type) != ETHERTYPE_IP)
+    {
         // Only interested in IP traffic.
         return;
     }
@@ -105,41 +111,52 @@ void packet_handler(u_char *user_data, const struct pcap_pkthdr *packet_header,
         safe_add(pcap_data->transport_proto_frequency_map[ip_header->ip_p], 1);
 
     // Determine the size of the data sent in the packet depending on if it was TCP or UDP.
-    if (ip_header->ip_p == IPPROTO_TCP) {
+    if (ip_header->ip_p == IPPROTO_TCP)
+    {
         auto data_size = packet_header->len -
                          (sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct tcphdr));
         pcap_data->total_data_volume = safe_add(pcap_data->total_data_volume, data_size);
-    } else if (ip_header->ip_p == IPPROTO_UDP) {
+    }
+    else if (ip_header->ip_p == IPPROTO_UDP)
+    {
         auto data_size = packet_header->len -
                          (sizeof(struct ether_header) + sizeof(struct ip) + sizeof(struct udphdr));
         pcap_data->total_data_volume = safe_add(pcap_data->total_data_volume, data_size);
-    } else {
+    }
+    else
+    {
         std::cout << "Non TCP or UDP traffic detected.\n";
         // Not ideal, but just bail out here as we're not expecting this.
         std::exit(-1);
     }
 }
 
-int main() {
+int main()
+{
     auto pcap_error_buf = std::array<char, PCAP_ERRBUF_SIZE>{};
     pcap_t *pcap_handle = pcap_open_offline("packet-storm.pcap", pcap_error_buf.data());
-    if (nullptr == pcap_handle) {
+    if (nullptr == pcap_handle)
+    {
         std::cout << pcap_error_buf.data() << "\n";
         return -1;
     }
 
     PcapData pcap_data = PcapData();
 
-    if (pcap_loop(pcap_handle, 0, packet_handler, reinterpret_cast<u_char *>(&pcap_data))) {
+    if (pcap_loop(pcap_handle, 0, packet_handler, reinterpret_cast<u_char *>(&pcap_data)))
+    {
         std::cout << pcap_geterr(pcap_handle) << "\n";
         return -1;
     }
+
+    pcap_close(pcap_handle);
 
     // Convert destination IPs from unordered map to vector for sorting.
     auto sorted_dst_ips = std::vector<std::pair<std::string, u_int32_t>>(
         pcap_data.dst_ip_frequency_map.begin(), pcap_data.dst_ip_frequency_map.end());
     std::sort(sorted_dst_ips.begin(), sorted_dst_ips.end(),
-              [](auto &left, auto &right) { return left.second > right.second; });
+              [](auto &left, auto &right)
+              { return left.second > right.second; });
     auto avg_packet_size = pcap_data.total_packet_size / pcap_data.num_packets;
 
     std::cout << "Average packet size: " << avg_packet_size << " B" << "\n";
@@ -147,23 +164,27 @@ int main() {
 
     // Write analysis to files for easier readability.
     std::ofstream dst_ips_stream(DST_IPS_OUPUT_FILENAME, std::ios::out | std::ios::trunc);
-    if (!dst_ips_stream.is_open()) {
+    if (!dst_ips_stream.is_open())
+    {
         std::cout << "Unable to open " << DST_IPS_OUPUT_FILENAME << "\n";
         return -1;
     }
 
-    for (const auto &[dst_ip, freq] : sorted_dst_ips) {
+    for (const auto &[dst_ip, freq] : sorted_dst_ips)
+    {
         dst_ips_stream << dst_ip << " = " << freq << "\n";
     }
     dst_ips_stream.close();
 
     std::ofstream proto_stream(PROTO_OUPUT_FILENAME, std::ios::out | std::ios::trunc);
-    if (!proto_stream.is_open()) {
+    if (!proto_stream.is_open())
+    {
         std::cout << "Unable to open " << PROTO_OUPUT_FILENAME << "\n";
         return -1;
     }
 
-    for (const auto &[proto, freq] : pcap_data.transport_proto_frequency_map) {
+    for (const auto &[proto, freq] : pcap_data.transport_proto_frequency_map)
+    {
         proto_stream << proto << " = " << freq << "\n";
     }
     proto_stream.close();
