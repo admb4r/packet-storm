@@ -42,17 +42,6 @@ struct PcapData
         std::unordered_map<u_int16_t, u_int32_t>{};
 };
 
-/** @brief Check whether integer overflow would occur if two unsigned integers were added together.
- *
- * @param[in]  a  The first integer.
- * @param[in]  b  The second integer.
- * @return Returns true when an overflow would occur, else false.
- */
-bool is_addition_overflow(const u_int32_t a, const u_int32_t b)
-{
-    return b > std::numeric_limits<u_int32_t>::max() - a;
-}
-
 /** @brief Safely add two unsigned integers together.
  *
  * Ideally would do better handling here, but for simplicity, exit the program if an overflow
@@ -63,12 +52,13 @@ bool is_addition_overflow(const u_int32_t a, const u_int32_t b)
  */
 u_int32_t safe_add(const u_int32_t a, const u_int32_t b)
 {
-    if (is_addition_overflow(a, b))
+    u_int32_t result = 0;
+    if (__builtin_add_overflow(a, b, &result))
     {
         std::cout << "Unsigned integer overflow detected. Exiting." << "\n";
         std::exit(-1);
     }
-    return a + b;
+    return result;
 }
 
 /** @brief Callback unction to analyse a particular packet. Used as a callback for libpcap's
